@@ -418,7 +418,7 @@ public class SmartBarView extends BaseNavigationBar {
         switch(mImeHintMode) {
             case IME_HINT_MODE_ARROWS: // arrows
                 getImeSwitchButton().setVisibility(View.INVISIBLE);
-                setImeArrowsVisibility(mCurrentView, View.INVISIBLE);
+                setImeArrowsVisibility(mCurrentView, backAlt ? View.VISIBLE : View.INVISIBLE);
                 setMediaArrowsVisibility(mCurrentView, View.INVISIBLE);
                 break;
             case IME_HINT_MODE_PICKER:
@@ -435,7 +435,7 @@ public class SmartBarView extends BaseNavigationBar {
                 break;
             default: //IME_HINT_MODE_ARROWS
                 getImeSwitchButton().setVisibility(View.INVISIBLE);
-                setImeArrowsVisibility(mCurrentView, backAlt ? View.VISIBLE : View.INVISIBLE);
+                setImeArrowsVisibility(mCurrentView, View.INVISIBLE);
                 setMediaArrowsVisibility(mCurrentView, View.INVISIBLE);
         }
 
