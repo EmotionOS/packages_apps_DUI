@@ -176,8 +176,9 @@ public abstract class MediaMonitor implements MediaSessionManager.OnActiveSessio
         List<MediaController> activeSessions = mMediaSessionManager.getActiveSessions(null);
         for (MediaController activeSession : activeSessions) {
             PlaybackState playbackState = activeSession.getPlaybackState();
-            if (playbackState != null && playbackState.getState()
-                    == PlaybackState.STATE_PLAYING) {
+            if (playbackState != null && (playbackState.getState()
+                    == PlaybackState.STATE_PLAYING
+                    || playbackState.getState() == PlaybackState.STATE_BUFFERING)) {
                 return true;
             }
         }
