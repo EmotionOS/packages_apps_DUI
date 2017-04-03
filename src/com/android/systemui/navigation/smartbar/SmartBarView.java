@@ -212,6 +212,7 @@ public class SmartBarView extends BaseNavigationBar {
         });
 
         mAudioManager = (AudioManager) context.getSystemService(Context.AUDIO_SERVICE);
+        filter.addAction(AudioManager.VOLUME_CHANGED_ACTION);
 
         mMediaMonitor = new MediaMonitor(context) {
             @Override
@@ -219,6 +220,10 @@ public class SmartBarView extends BaseNavigationBar {
                 if (mImeHintMode == 3) {
                     setNavigationIconHints(mNavigationIconHints, true);
                 }
+            }
+            @Override
+            public void areMetadataChanged() {
+                setNavigationIconHints(mNavigationIconHints, true);
             }
         };
         mMediaMonitor.setListening(true);
