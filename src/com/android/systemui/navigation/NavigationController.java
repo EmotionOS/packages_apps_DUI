@@ -1,7 +1,7 @@
 /**
  * Copyright (C) 2014 The TeamEos Project
  * Copyright (C) 2016 The DirtyUnicorns Project
- *
+ * 
  * @author: Randall Rushing <randall.rushing@gmail.com>
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -55,8 +55,6 @@ import android.provider.Settings;
 import android.view.View;
 import android.view.WindowManager;
 
-import cyanogenmod.providers.CMSettings;
-
 public class NavigationController implements PackageChangedListener {
     private static final String TAG = NavigationController.class.getSimpleName();
 
@@ -74,6 +72,7 @@ public class NavigationController implements PackageChangedListener {
     private boolean mScreenPinningEnabled;
     private Configuration mConfiguration;
     private Resources mResources;
+    private boolean mLeftInLandscape;
 
     private final Runnable mAddNavbar = new Runnable() {
         @Override
@@ -156,6 +155,13 @@ public class NavigationController implements PackageChangedListener {
         return handled;
     }
 
+    public void leftInLandscapeChanged(boolean isLeft) {
+        mLeftInLandscape = isLeft;
+        if (mNavigationBarView != null) {
+            mNavigationBarView.setLeftInLandscape(isLeft);
+        }
+    }
+
     public void recreateNavigationBar(Context context) {
         int navMode = Settings.Secure.getIntForUser(context.getContentResolver(),
                 Settings.Secure.NAVIGATION_BAR_MODE, NAVIGATION_MODE_SMARTBAR,
@@ -176,6 +182,7 @@ public class NavigationController implements PackageChangedListener {
         mNavigationBarView.setStatusBar(mBar);
         mNavigationBarView.setResourceMap(mResourceMap);
         mNavigationBarView.setControllers(mPulseController);
+        mNavigationBarView.setLeftInLandscape(mLeftInLandscape);
     }
 
     public Navigator getBar() {
@@ -287,8 +294,8 @@ public class NavigationController implements PackageChangedListener {
                     UserHandle.USER_ALL);
             resolver.registerContentObserver(Settings.Secure.getUriFor(
                     Settings.Secure.NAVIGATION_BAR_VISIBLE), false, this, UserHandle.USER_ALL);
-//            resolver.registerContentObserver(CMSettings.System.getUriFor(
-//                    CMSettings.System.NAVBAR_LEFT_IN_LANDSCAPE), false, this, UserHandle.USER_ALL);
+//            resolver.registerContentObserver(Settings.System.getUriFor(
+//                    Settings.System.NAVBAR_LEFT_IN_LANDSCAPE), false, this, UserHandle.USER_ALL);
         }
 
         @Override
@@ -298,10 +305,10 @@ public class NavigationController implements PackageChangedListener {
         public void onChange(boolean selfChange, Uri uri) {
             final ContentResolver resolver = mContext.getContentResolver();
 
-//            if (uri.equals(CMSettings.System.getUriFor(Settings.System.NAVBAR_LEFT_IN_LANDSCAPE))
+//            if (uri.equals(Settings.System.getUriFor(Settings.System.NAVBAR_LEFT_IN_LANDSCAPE))
 //                    && isBarShowingNow) {
-//                boolean navLeftInLandscape = CMSettings.System.getIntForUser(resolver,
-//                        CMSettings.System.NAVBAR_LEFT_IN_LANDSCAPE, 0, UserHandle.USER_CURRENT) == 1;
+//                boolean navLeftInLandscape = Settings.System.getIntForUser(resolver,
+//                        Settings.System.NAVBAR_LEFT_IN_LANDSCAPE, 0, UserHandle.USER_CURRENT) == 1;
 //                mBar.getNavigationBarView().setLeftInLandscape(navLeftInLandscape);
             if (uri.equals(Settings.Secure
                     .getUriFor(Settings.Secure.NAVIGATION_BAR_VISIBLE))) {

@@ -1,5 +1,5 @@
 /**
- * Copyright (C) 2016 The DirtyUnicorns Project
+ * Copyright (C) 2016-2017 The DirtyUnicorns Project
  * Copyright (C) 2014 SlimRoms
  *
  * @author: Randall Rushing <randall.rushing@gmail.com>
@@ -35,16 +35,15 @@ import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.res.Resources;
 import android.graphics.drawable.Drawable;
-import android.graphics.PorterDuff.Mode;
 import android.media.AudioManager;
 import android.net.Uri;
 import android.os.Handler;
 import android.os.UserHandle;
 import android.provider.Settings;
 import android.text.TextUtils;
-import android.view.GestureDetector;
 import android.view.MotionEvent;
 import android.view.View;
+import android.view.ViewConfiguration;
 import android.view.ViewGroup;
 import android.view.animation.Animation;
 import android.widget.FrameLayout;
@@ -90,37 +89,16 @@ public class SmartBarView extends BaseNavigationBar {
     static final int IME_HINT_MODE_PICKER = 2;
     static final int IME_AND_MEDIA_HINT_MODE_ARROWS = 3;
 
-
-    //OPA values
-    private static final int COLLAPSE_ANIMATION_DURATION_RY = 83;
-    private static final int COLLAPSE_ANIMATION_DURATION_BG = 100;
-    private static final int LINE_ANIMATION_DURATION_Y = 275;
-    private static final int LINE_ANIMATION_DURATION_X = 133;
-    private static final int RETRACT_ANIMATION_DURATION = 300;
-    private static final int DIAMOND_ANIMATION_DURATION = 200;
-    private static final int HALO_ANIMATION_DURATION = 100;
-
-    private static final int DOTS_RESIZE_DURATION = 200;
-    private static final int HOME_RESIZE_DURATION = 83;
-    private static Context ctx;
-
     private static Set<Uri> sUris = new HashSet<Uri>();
     static {
         sUris.add(Settings.Secure.getUriFor("smartbar_context_menu_mode"));
         sUris.add(Settings.Secure.getUriFor("smartbar_ime_hint_mode"));
         sUris.add(Settings.Secure.getUriFor("smartbar_button_animation_style"));
         sUris.add(Settings.Secure.getUriFor(Settings.Secure.NAVBAR_BUTTONS_ALPHA));
-        sUris.add(Settings.System.getUriFor(Settings.System.SMARTBAR_DOUBLETAP_SLEEP));
         sUris.add(Settings.Secure.getUriFor(Settings.Secure.ONE_HANDED_MODE_UI));
         sUris.add(Settings.Secure.getUriFor(Settings.Secure.PULSE_CUSTOM_BUTTONS_OPACITY));
-        sUris.add(Settings.System.getUriFor(Settings.System.OPA_ANIM_DURATION_Y));
-        sUris.add(Settings.System.getUriFor(Settings.System.OPA_ANIM_DURATION_X));
-        sUris.add(Settings.System.getUriFor(Settings.System.COLLAPSE_ANIMATION_DURATION_BG));
-        sUris.add(Settings.System.getUriFor(Settings.System.COLLAPSE_ANIMATION_DURATION_RY));
-        sUris.add(Settings.System.getUriFor(Settings.System.RETRACT_ANIMATION_DURATION));
-        sUris.add(Settings.System.getUriFor(Settings.System.DIAMOND_ANIMATION_DURATION));
-        sUris.add(Settings.System.getUriFor(Settings.System.DOTS_RESIZE_DURATION));
-        sUris.add(Settings.System.getUriFor(Settings.System.HOME_RESIZE_DURATION));
+        sUris.add(Settings.Secure.getUriFor(Settings.Secure.SMARTBAR_LONGPRESS_DELAY));
+        sUris.add(Settings.Secure.getUriFor(Settings.Secure.SMARTBAR_CUSTOM_ICON_SIZE));
     }
 
     private SmartObservable mObservable = new SmartObservable() {
@@ -140,28 +118,15 @@ public class SmartBarView extends BaseNavigationBar {
                 updateAnimationStyle();
             } else if (uri.equals(Settings.Secure.getUriFor(Settings.Secure.NAVBAR_BUTTONS_ALPHA))) {
                 updateButtonAlpha();
-            } else if (uri.equals(Settings.System.getUriFor(Settings.System.SMARTBAR_DOUBLETAP_SLEEP))) {
-                updateNavDoubletapSetting();
             } else if (uri.equals(Settings.Secure.getUriFor(Settings.Secure.ONE_HANDED_MODE_UI))) {
                 updateOneHandedModeSetting();
             } else if (uri.equals(Settings.Secure.getUriFor(Settings.Secure.PULSE_CUSTOM_BUTTONS_OPACITY))) {
                 updatePulseNavButtonsOpacity();
-            } else if (uri.equals(Settings.System.getUriFor(Settings.System.OPA_ANIM_DURATION_Y))) {
-                setYAnimationDuration();
-            } else if (uri.equals(Settings.System.getUriFor(Settings.System.OPA_ANIM_DURATION_X))) {
-                setXAnimationDuration();
-            } else if (uri.equals(Settings.System.getUriFor(Settings.System.COLLAPSE_ANIMATION_DURATION_BG))) {
-                setBGAnimationDuration();
-            } else if (uri.equals(Settings.System.getUriFor(Settings.System.COLLAPSE_ANIMATION_DURATION_RY))) {
-                setRYAnimationDuration();
-            } else if (uri.equals(Settings.System.getUriFor(Settings.System.RETRACT_ANIMATION_DURATION))) {
-                setRetractAnimationDuration();
-            } else if (uri.equals(Settings.System.getUriFor(Settings.System.DIAMOND_ANIMATION_DURATION))) {
-                setDiamondAnimationDuration();
-            } else if (uri.equals(Settings.System.getUriFor(Settings.System.DOTS_RESIZE_DURATION))) {
-                setDotsAnimationDuration();
-            } else if (uri.equals(Settings.System.getUriFor(Settings.System.HOME_RESIZE_DURATION))) {
-                setHomeResizeAnimationDuration();
+            } else if (uri.equals(Settings.Secure.getUriFor(Settings.Secure.SMARTBAR_LONGPRESS_DELAY))) {
+                updateButtonLongpressDelay();
+            } else if (uri.equals(Settings.Secure.getUriFor(Settings.Secure.SMARTBAR_CUSTOM_ICON_SIZE))) {
+                updateCustomIconSize();
+                updateCurrentIcons();
             }
         }
     };
@@ -177,17 +142,13 @@ public class SmartBarView extends BaseNavigationBar {
     private View mContextRight, mContextLeft, mCurrentContext;
     private boolean mHasLeftContext;
     private boolean mMusicStreamMuted;
-    private boolean isNavDoubleTapEnabled;
     private boolean isOneHandedModeEnabled;
     private int mImeHintMode;
     private int mButtonAnimationStyle;
     private float mCustomAlpha;
-    private static boolean mNavTintSwitch;
-    public static int mIcontint;
-    private static boolean mNavTintCustomIconSwitch;
+    private float mCustomIconScale;
     public float mPulseNavButtonsOpacity;
 
-    private GestureDetector mNavDoubleTapToSleep;
     private SlideTouchEvent mSlideTouchEvent;
 
     private AudioManager mAudioManager;
@@ -224,7 +185,6 @@ public class SmartBarView extends BaseNavigationBar {
 
     public SmartBarView(Context context, boolean asDefault) {
         super(context);
-        ctx = context;
         mBarTransitions = new SmartBarTransitions(this);
         mSlideTouchEvent = new SlideTouchEvent(context);
         mScreenPinningEnabled = asDefault;
@@ -233,16 +193,6 @@ public class SmartBarView extends BaseNavigationBar {
             mSmartObserver.addListener(mObservable);
         }
         createBaseViews();
-        SetOpaDurations();
-
-        mNavDoubleTapToSleep = new GestureDetector(context,
-                new GestureDetector.SimpleOnGestureListener() {
-            @Override
-            public boolean onDoubleTap(MotionEvent e) {
-                ActionHandler.performTask(context, ActionHandler.SYSTEMUI_TASK_SCREENOFF);
-                return true;
-            }
-        });
 
         mAudioManager = (AudioManager) context.getSystemService(Context.AUDIO_SERVICE);
         mMusicStreamMuted = isMusicMuted(AudioManager.STREAM_MUSIC);
@@ -268,9 +218,6 @@ public class SmartBarView extends BaseNavigationBar {
 
     @Override
     public boolean onTouchEvent(MotionEvent event) {
-        if (isNavDoubleTapEnabled) {
-            mNavDoubleTapToSleep.onTouchEvent(event);
-        }
         if (isOneHandedModeEnabled) {
             mSlideTouchEvent.handleTouchEvent(event);
         }
@@ -288,11 +235,12 @@ public class SmartBarView extends BaseNavigationBar {
     @Override
     public void setResourceMap(NavbarOverlayResources resourceMap) {
         super.setResourceMap(resourceMap);
+        updateCustomIconSize();
         recreateLayouts();
         updateImeHintModeSettings();
         updateContextLayoutSettings();
-        updateNavDoubletapSetting();
         updateOneHandedModeSetting();
+        updateButtonLongpressDelay();
     }
 
     @Override
@@ -342,53 +290,39 @@ public class SmartBarView extends BaseNavigationBar {
 
     public void setButtonDrawable(SmartButtonView button) {
         ButtonConfig config = button.getButtonConfig();
-        mNavTintSwitch = Settings.System.getInt(getContext().getContentResolver(),
-                Settings.System.NAVBAR_TINT_SWITCH, 0) == 1;
-        mIcontint = Settings.System.getInt(mContext.getContentResolver(),
-                Settings.System.NAVBAR_BUTTON_COLOR, 0xFFFFFFFF);
-        mNavTintCustomIconSwitch = Settings.System.getInt(getContext().getContentResolver(),
-                Settings.System.NAVBAR_BUTON_CUSTOM_ICON_SWITCH, 1) == 1;
         Drawable d = null;
         if (config != null) {
+            Context ctx = getContext();
+            boolean needsResize;
             // a system navigation action icon is showing, get it locally
             if (!config.hasCustomIcon()
                     && config.isSystemAction()) {
-                    d = mResourceMap.getActionDrawable(config.getActionConfig(ActionConfig.PRIMARY).getAction());
+                needsResize = false;
+                d = mResourceMap.getActionDrawable(config.getActionConfig(ActionConfig.PRIMARY).getAction());
             } else {
+                needsResize = true;
                 // custom icon or intent icon, get from library
-                d = config.getCurrentIcon(getContext());
+                d = config.getCurrentIcon(ctx);
             }
             if (TextUtils.equals(config.getTag(), Res.Softkey.BUTTON_BACK)) {
-                SmartBackButtonDrawable backDrawable = new SmartBackButtonDrawable(d);
+                SmartBackButtonDrawable backDrawable;
+                if (needsResize) {
+                    backDrawable = new SmartBackButtonDrawable(SmartBarHelper.resizeCustomButtonIcon(d, ctx, mCustomIconScale));
+                } else {
+                    backDrawable = new SmartBackButtonDrawable(d);
+                }
                 button.setImageDrawable(null);
                 button.setImageDrawable(backDrawable);
                 final boolean backAlt = (mNavigationIconHints & StatusBarManager.NAVIGATION_HINT_BACK_ALT) != 0;
                 backDrawable.setImeVisible(backAlt);
             } else {
                 button.setImageDrawable(null);
-                button.setImageDrawable(d);
-            }
-            if (mNavTintSwitch) {
-                button.setColorFilter(mIcontint, Mode.SRC_IN);
-            } else {
-                button.setColorFilter(null);
-            }
-            if (!config.isSystemAction()) {
-                if (mNavTintCustomIconSwitch && mNavTintSwitch) {
-                    button.setColorFilter(mIcontint, Mode.MULTIPLY);
-                    return;
+                if (needsResize) {
+                    button.setImageDrawable(SmartBarHelper.resizeCustomButtonIcon(d, ctx, mCustomIconScale));
+                } else {
+                    button.setImageDrawable(d);
                 }
-                button.setColorFilter(null);
             }
-        }
-    }
-
-    public static int updatetint() {
-        if (mNavTintSwitch) {
-            return mIcontint;
-        } else {
-            mIcontint = -1 ;
-            return mIcontint;
         }
     }
 
@@ -461,7 +395,7 @@ public class SmartBarView extends BaseNavigationBar {
         mNavigationIconHints = hints;
         getBackButtonIcon().setImeVisible(backAlt);
 
-        final boolean showImeButton = ((hints & StatusBarManager.NAVIGATION_HINT_IME_SHOWN) != 0);
+        final boolean showImeButton = /*(*/(hints /*& StatusBarManager.NAVIGATION_HINT_IME_SHOWN)*/ != 0);
         switch(mImeHintMode) {
             case IME_HINT_MODE_ARROWS: // arrows
                 getImeSwitchButton().setVisibility(View.INVISIBLE);
@@ -605,7 +539,7 @@ public class SmartBarView extends BaseNavigationBar {
 
         // Only show Menu if IME switcher not shown.
         final boolean shouldShow = mShowMenu &&
-                ((mNavigationIconHints & StatusBarManager.NAVIGATION_HINT_IME_SHOWN) == 0);
+                /*(*/(mNavigationIconHints == 0 /*& StatusBarManager.NAVIGATION_HINT_IME_SHOWN) == 0*/);
         getMenuButton().setVisibility(shouldShow ? View.VISIBLE : View.INVISIBLE);
     }
 
@@ -712,11 +646,6 @@ public class SmartBarView extends BaseNavigationBar {
         getHiddenContext().findViewWithTag(Res.Softkey.MENU_BUTTON).setVisibility(INVISIBLE);
         getHiddenContext().findViewWithTag(Res.Softkey.IME_SWITCHER).setVisibility(INVISIBLE);
         setNavigationIconHints(mNavigationIconHints, true);
-    }
-
-    private void updateNavDoubletapSetting() {
-        isNavDoubleTapEnabled = Settings.System.getIntForUser(getContext().getContentResolver(),
-                Settings.System.SMARTBAR_DOUBLETAP_SLEEP, 0, UserHandle.USER_CURRENT) == 1;
     }
 
     private void updateOneHandedModeSetting() {
@@ -940,71 +869,26 @@ public class SmartBarView extends BaseNavigationBar {
                 .start();
     }
 
-    public void  setYAnimationDuration() {
-      int dur = Settings.System.getIntForUser(
-                ctx.getContentResolver(), Settings.System.OPA_ANIM_DURATION_Y, LINE_ANIMATION_DURATION_Y,
-                UserHandle.USER_CURRENT);
-      OpaLayout.LINE_ANIMATION_DURATION_Y = dur;
+    private void updateButtonLongpressDelay() {
+        int systemLpDelay = ViewConfiguration.getLongPressTimeout();
+        int userDelay = Settings.Secure.getIntForUser(getContext().getContentResolver(),
+                Settings.Secure.SMARTBAR_LONGPRESS_DELAY, 0, UserHandle.USER_CURRENT);
+        switch (userDelay) {
+            default:
+                SmartButtonView.setButtonLongpressDelay(systemLpDelay - 100);
+                break;
+            case 1:
+                SmartButtonView.setButtonLongpressDelay(systemLpDelay);
+                break;
+            case 2:
+                SmartButtonView.setButtonLongpressDelay(systemLpDelay + 200);
+                break;
+        }
     }
 
-    public void  setXAnimationDuration() {
-      int dur = Settings.System.getIntForUser(
-                ctx.getContentResolver(), Settings.System.OPA_ANIM_DURATION_X, LINE_ANIMATION_DURATION_X,
-                UserHandle.USER_CURRENT);
-      OpaLayout.LINE_ANIMATION_DURATION_X = dur;
-    }
-
-    public void  setBGAnimationDuration() {
-      int dur = Settings.System.getIntForUser(
-                ctx.getContentResolver(), Settings.System.COLLAPSE_ANIMATION_DURATION_BG, COLLAPSE_ANIMATION_DURATION_BG,
-                UserHandle.USER_CURRENT);
-      OpaLayout.COLLAPSE_ANIMATION_DURATION_BG = dur;
-    }
-
-    public void  setRYAnimationDuration() {
-      int dur = Settings.System.getIntForUser(
-                ctx.getContentResolver(), Settings.System.COLLAPSE_ANIMATION_DURATION_RY, COLLAPSE_ANIMATION_DURATION_RY,
-                UserHandle.USER_CURRENT);
-      OpaLayout.COLLAPSE_ANIMATION_DURATION_RY = dur;
-    }
-
-    public void setRetractAnimationDuration() {
-      int dur = Settings.System.getIntForUser(
-                ctx.getContentResolver(), Settings.System.RETRACT_ANIMATION_DURATION, RETRACT_ANIMATION_DURATION,
-                UserHandle.USER_CURRENT);
-      OpaLayout.RETRACT_ANIMATION_DURATION = dur;
-
-    }
-
-    public void setDiamondAnimationDuration() {
-      int dur = Settings.System.getIntForUser(
-                ctx.getContentResolver(), Settings.System.DIAMOND_ANIMATION_DURATION, DIAMOND_ANIMATION_DURATION,
-                UserHandle.USER_CURRENT);
-      OpaLayout.DIAMOND_ANIMATION_DURATION = dur;
-    }
-
-    public void  setDotsAnimationDuration() {
-      int dur = Settings.System.getIntForUser(
-                ctx.getContentResolver(), Settings.System.DOTS_RESIZE_DURATION, DOTS_RESIZE_DURATION,
-                UserHandle.USER_CURRENT);
-      OpaLayout.DOTS_RESIZE_DURATION = dur;
-    }
-
-    public void  setHomeResizeAnimationDuration() {
-      int dur = Settings.System.getIntForUser(
-                ctx.getContentResolver(), Settings.System.HOME_RESIZE_DURATION, HOME_RESIZE_DURATION,
-                UserHandle.USER_CURRENT);
-      OpaLayout.HOME_RESIZE_DURATION = dur;
-    }
-
-    public void SetOpaDurations() {
-            setYAnimationDuration();
-            setXAnimationDuration();
-            setBGAnimationDuration();
-            setRYAnimationDuration();
-            setRetractAnimationDuration();
-            setDiamondAnimationDuration();
-            setDotsAnimationDuration();
-            setHomeResizeAnimationDuration();
+    private void updateCustomIconSize() {
+        int iconSize = Settings.Secure.getIntForUser(getContext().getContentResolver(),
+                Settings.Secure.SMARTBAR_CUSTOM_ICON_SIZE, 60, UserHandle.USER_CURRENT);
+        mCustomIconScale = 0.01f * iconSize;
     }
 }

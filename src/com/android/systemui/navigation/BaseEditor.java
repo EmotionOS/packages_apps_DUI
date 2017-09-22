@@ -50,9 +50,9 @@ import android.widget.Toast;
 public abstract class BaseEditor implements Editor {
 
     public static final String INTENT_ACTION_EDIT_CLASS = "com.android.settings";
-    public static final String INTENT_ACTION_EDIT_COMPONENT = "com.android.settings.du.utils.ActionPickerDialogActivity";
-    public static final String INTENT_ACTION_ICON_PICKER_COMPONENT = "com.android.settings.du.utils.IconPickerActivity";
-    public static final String INTENT_ACTION_GALLERY_PICKER_COMPONENT = "com.android.settings.du.utils.IconPickerGallery";
+    public static final String INTENT_ACTION_EDIT_COMPONENT = "com.dirtyunicorns.dutweaks.ActionPickerDialogActivity";
+    public static final String INTENT_ACTION_ICON_PICKER_COMPONENT = "com.dirtyunicorns.dutweaks.IconPickerActivity";
+    public static final String INTENT_ACTION_GALLERY_PICKER_COMPONENT = "com.dirtyunicorns.dutweaks.IconPickerGallery";
     public static final String INTENT_ICON_PICKER = "intent_icon_picker";
     public static final String INTENT_GALLERY_PICKER = "intent_gallery_picker";
     public static final String INTENT_ACTION_PICKER = "intent_action_action_picker";
@@ -90,12 +90,10 @@ public abstract class BaseEditor implements Editor {
                     if (mode == MODE_ON) {
                         changeEditMode(MODE_OFF);
                         mHost.setSlippery(true);
-                        mHost.mOrientationEventListener.enable();
                     } else {
                         if (isEditorAvailable()) {
                             changeEditMode(MODE_ON);
                             mHost.setSlippery(false);
-                            mHost.mOrientationEventListener.disable();
                         } else {
                             toastState(69);
                         }
